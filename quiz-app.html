@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Application</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-secondary: #151b2b;
+      --bg-card: #1a2332;
+      --text-primary: #e8eaed;
+      --text-secondary: #9ca3af;
+      --accent: #f59e0b;
+      --accent-hover: #fbbf24;
+      --correct: #10b981;
+      --incorrect: #ef4444;
+      --border: #2d3748;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Crimson Pro', serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.7;
+      min-height: 100vh;
+      background-image: 
+        radial-gradient(circle at 20% 50%, rgba(245, 158, 11, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.03) 0%, transparent 50%);
+    }
+
+    .app-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 4rem;
+      animation: fadeInDown 0.8s ease-out;
+    }
+
+    .header h1 {
+      font-size: 3.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header p {
+      font-size: 1.125rem;
+      color: var(--text-secondary);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+    }
+
+    .upload-section {
+      background: var(--bg-card);
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      padding: 3rem;
+      text-align: center;
+      margin-bottom: 2rem;
+      transition: all 0.3s ease;
+      animation: fadeIn 0.8s ease-out 0.2s backwards;
+    }
+
+    .upload-section:hover {
+      border-color: var(--accent);
+      background: rgba(245, 158, 11, 0.05);
+    }
+
+    .upload-section.has-file {
+      border-style: solid;
+      border-color: var(--correct);
+      background: rgba(16, 185, 129, 0.05);
+    }
+
+    .file-input {
+      display: none;
+    }
+
+    .upload-button {
+      background: var(--accent);
+      color: var(--bg-primary);
+      border: none;
+      padding: 1rem 2.5rem;
+      font-size: 1.125rem;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      font-family: 'Crimson Pro', serif;
+      transition: all 0.3s ease;
+      display: inline-block;
+    }
+
+    .upload-button:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+    }
+
+    .file-info {
+      margin-top: 1.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--correct);
+      font-size: 0.95rem;
+    }
+
+    .quiz-card {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 2.5rem;
+      border: 1px solid var(--border);
+      animation: fadeInUp 0.6s ease-out;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .quiz-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-hover) 100%);
+    }
+
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .question-number {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 0.9rem;
+      letter-spacing: 0.1em;
+    }
+
+    .selection-type {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      background: var(--bg-secondary);
+      padding: 0.4rem 1rem;
+      border-radius: 20px;
+    }
+
+    .question-text {
+      font-size: 1.25rem;
+      line-height: 1.8;
+      margin-bottom: 2rem;
+      color: var(--text-primary);
+    }
+
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .option-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1.25rem;
+      background: var(--bg-secondary);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .option-label:hover {
+      border-color: var(--accent);
+      background: rgba(245, 158, 11, 0.08);
+      transform: translateX(4px);
+    }
+
+    .option-label.selected {
+      border-color: var(--accent);
+      background: rgba(245, 158, 11, 0.12);
+    }
+
+    .option-label.correct {
+      border-color: var(--correct);
+      background: rgba(16, 185, 129, 0.12);
+    }
+
+    .option-label.incorrect {
+      border-color: var(--incorrect);
+      background: rgba(239, 68, 68, 0.12);
+    }
+
+    .option-input {
+      margin-top: 0.25rem;
+      cursor: pointer;
+    }
+
+    .option-text {
+      flex: 1;
+      font-size: 1.05rem;
+    }
+
+    .submit-button {
+      background: var(--accent);
+      color: var(--bg-primary);
+      border: none;
+      padding: 1rem 3rem;
+      font-size: 1.125rem;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      font-family: 'Crimson Pro', serif;
+      transition: all 0.3s ease;
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+
+    .submit-button:hover:not(:disabled) {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+    }
+
+    .submit-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .result-section {
+      margin-top: 2rem;
+      padding: 2rem;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      border-left: 4px solid var(--accent);
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    .result-section.correct {
+      border-left-color: var(--correct);
+    }
+
+    .result-section.incorrect {
+      border-left-color: var(--incorrect);
+    }
+
+    .result-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .result-title.correct {
+      color: var(--correct);
+    }
+
+    .result-title.incorrect {
+      color: var(--incorrect);
+    }
+
+    .explanation {
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: var(--text-secondary);
+    }
+
+    .next-button {
+      background: transparent;
+      color: var(--accent);
+      border: 2px solid var(--accent);
+      padding: 1rem 3rem;
+      font-size: 1.125rem;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      font-family: 'Crimson Pro', serif;
+      transition: all 0.3s ease;
+      width: 100%;
+    }
+
+    .next-button:hover {
+      background: var(--accent);
+      color: var(--bg-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+    }
+
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--incorrect);
+      color: var(--incorrect);
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function QuizApp() {
+      const [mdContent, setMdContent] = useState('');
+      const [fileName, setFileName] = useState('');
+      const [questions, setQuestions] = useState([]);
+      const [currentQuestion, setCurrentQuestion] = useState(null);
+      const [selectedAnswers, setSelectedAnswers] = useState([]);
+      const [showResult, setShowResult] = useState(false);
+      const [error, setError] = useState('');
+      const [history, setHistory] = useState([]);
+      const [view, setView] = useState('quiz'); // 'quiz' or 'history'
+      const [reviewQuestion, setReviewQuestion] = useState(null);
+      const [aiExplanation, setAiExplanation] = useState('');
+      const [isGenerating, setIsGenerating] = useState(false);
+      const [aiEnabled, setAiEnabled] = useState(false);
+
+      // Load history from localStorage
+      useEffect(() => {
+        const savedHistory = localStorage.getItem('quizHistory');
+        if (savedHistory) {
+          setHistory(JSON.parse(savedHistory));
+        }
+      }, []);
+
+      // Save history to localStorage
+      useEffect(() => {
+        if (history.length > 0) {
+          localStorage.setItem('quizHistory', JSON.stringify(history));
+        }
+      }, [history]);
+
+      const parseMD = (content) => {
+        const questionBlocks = content.split(/(?=\*\*問題\d+\*\*)/);
+        const parsed = [];
+
+        questionBlocks.forEach(block => {
+          if (!block.trim()) return;
+
+          const lines = block.split('\n').filter(line => line.trim());
+          
+          const questionMatch = lines[0].match(/\*\*問題(\d+)\*\*/);
+          if (!questionMatch) return;
+
+          let questionText = '';
+          const options = [];
+          let correctAnswer = '';
+          let explanation = '';
+          let isMultiSelect = false;
+
+          let i = 1;
+          while (i < lines.length && !lines[i].match(/^[A-F]\./)) {
+            questionText += lines[i] + '\n';
+            i++;
+          }
+
+          // Check if multi-select
+          if (questionText.includes('(2つ選択)') || questionText.includes('(3つ選択)')) {
+            isMultiSelect = true;
+          }
+
+          while (i < lines.length && lines[i].match(/^[A-F]\./)) {
+            options.push(lines[i]);
+            i++;
+          }
+
+          while (i < lines.length) {
+            if (lines[i].startsWith('**正解:')) {
+              correctAnswer = lines[i].replace('**正解:', '').replace('**', '').trim();
+            } else if (lines[i].startsWith('**解説:**')) {
+              explanation = lines[i].replace('**解説:**', '').trim();
+              i++;
+              while (i < lines.length && !lines[i].startsWith('**')) {
+                explanation += ' ' + lines[i];
+                i++;
+              }
+              break;
+            }
+            i++;
+          }
+
+          if (questionText && options.length > 0 && correctAnswer) {
+            parsed.push({
+              number: questionMatch[1],
+              question: questionText.trim(),
+              options: options,
+              correctAnswer: correctAnswer,
+              explanation: explanation.trim(),
+              isMultiSelect: isMultiSelect
+            });
+          }
+        });
+
+        return parsed;
+      };
+
+      const handleFileUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setFileName(file.name);
+        setError('');
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const content = event.target.result;
+          setMdContent(content);
+          const parsedQuestions = parseMD(content);
+          
+          if (parsedQuestions.length === 0) {
+            setError('MDファイルから問題を読み込めませんでした。形式を確認してください。');
+            return;
+          }
+
+          setQuestions(parsedQuestions);
+          loadRandomQuestion(parsedQuestions);
+        };
+        reader.readAsText(file);
+      };
+
+      const loadRandomQuestion = (questionList) => {
+        const randomIndex = Math.floor(Math.random() * questionList.length);
+        setCurrentQuestion(questionList[randomIndex]);
+        setSelectedAnswers([]);
+        setShowResult(false);
+        setError('');
+        setAiExplanation('');
+        setIsGenerating(false);
+      };
+
+      const handleAnswerChange = (option) => {
+        const optionLetter = option.charAt(0);
+
+        if (currentQuestion.isMultiSelect) {
+          if (selectedAnswers.includes(optionLetter)) {
+            setSelectedAnswers(selectedAnswers.filter(a => a !== optionLetter));
+          } else {
+            setSelectedAnswers([...selectedAnswers, optionLetter]);
+          }
+        } else {
+          setSelectedAnswers([optionLetter]);
+        }
+      };
+
+      const handleSubmit = async () => {
+        if (selectedAnswers.length === 0) {
+          setError('回答を選択してください。');
+          return;
+        }
+
+        setError('');
+        setShowResult(true);
+
+        // Save to history
+        const correct = isCorrect();
+        const historyEntry = {
+          id: Date.now(),
+          timestamp: new Date().toISOString(),
+          question: currentQuestion,
+          selectedAnswers: selectedAnswers,
+          isCorrect: correct
+        };
+
+        setHistory(prev => [historyEntry, ...prev]);
+
+        // Generate AI explanation only if enabled
+        if (aiEnabled) {
+          await generateAIExplanation(
+            currentQuestion,
+            selectedAnswers,
+            currentQuestion.correctAnswer,
+            correct
+          );
+        }
+      };
+
+      const handleNext = () => {
+        loadRandomQuestion(questions);
+      };
+
+      const generateAIExplanation = async (question, selectedAnswers, correctAnswers, isCorrect) => {
+        setIsGenerating(true);
+        setAiExplanation('');
+
+        try {
+          const prompt = `あなたは優秀な技術講師です。以下の問題について、受験者に解説を提供してください。
+
+問題:
+${question.question}
+
+選択肢:
+${question.options.join('\n')}
+
+受験者の回答: ${selectedAnswers.join(', ')}
+正解: ${correctAnswers}
+結果: ${isCorrect ? '正解' : '不正解'}
+
+以下の点を含めた丁寧な解説を提供してください：
+1. なぜその選択肢が正解なのか
+2. 他の選択肢が不正解である理由
+3. この問題で重要な技術的ポイント
+${!isCorrect ? '4. 受験者が間違えた理由と改善点' : ''}
+
+解説は簡潔かつわかりやすく、3-5段落程度でまとめてください。`;
+
+          console.log('API呼び出し開始...');
+          
+          const response = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-20250514",
+              max_tokens: 1000,
+              messages: [
+                { role: "user", content: prompt }
+              ],
+            })
+          });
+
+          console.log('レスポンスステータス:', response.status);
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('APIエラーレスポンス:', errorText);
+            throw new Error(`API Error: ${response.status} - ${errorText}`);
+          }
+
+          const data = await response.json();
+          console.log('APIレスポンス:', data);
+          
+          if (data.content && data.content[0] && data.content[0].text) {
+            setAiExplanation(data.content[0].text);
+          } else if (data.error) {
+            console.error('APIエラー:', data.error);
+            setAiExplanation(`❌ エラー: ${data.error.message || JSON.stringify(data.error)}\n\n元の解説を参照してください。`);
+          } else {
+            console.error('予期しないレスポンス形式:', data);
+            setAiExplanation('❌ 解説の生成に失敗しました。レスポンス形式が不正です。\n\n元の解説を参照してください。');
+          }
+        } catch (error) {
+          console.error('AI解説生成エラー:', error);
+          setAiExplanation(`❌ エラーが発生しました: ${error.message}\n\nこのアプリはブラウザから直接Anthropic APIを呼び出しています。CORSポリシーやネットワークの問題が原因の可能性があります。\n\n元の解説を参照してください。`);
+        } finally {
+          setIsGenerating(false);
+        }
+      };
+
+      const isCorrect = () => {
+        const correctAnswers = currentQuestion.correctAnswer.split(',').map(a => a.trim());
+        const sortedSelected = [...selectedAnswers].sort().join(',');
+        const sortedCorrect = correctAnswers.sort().join(',');
+        return sortedSelected === sortedCorrect;
+      };
+
+      const getOptionClass = (option) => {
+        if (!showResult) {
+          return selectedAnswers.includes(option.charAt(0)) ? 'selected' : '';
+        }
+
+        const optionLetter = option.charAt(0);
+        const correctAnswers = currentQuestion.correctAnswer.split(',').map(a => a.trim());
+        
+        if (correctAnswers.includes(optionLetter)) {
+          return 'correct';
+        }
+        
+        if (selectedAnswers.includes(optionLetter)) {
+          return 'incorrect';
+        }
+
+        return '';
+      };
+
+      const getStats = () => {
+        if (history.length === 0) return { total: 0, correct: 0, percentage: 0 };
+        const correct = history.filter(h => h.isCorrect).length;
+        return {
+          total: history.length,
+          correct: correct,
+          percentage: Math.round((correct / history.length) * 100)
+        };
+      };
+
+      const handleReview = (entry) => {
+        setReviewQuestion(entry);
+        setView('review');
+      };
+
+      const handleBackToQuiz = () => {
+        setView('quiz');
+        setReviewQuestion(null);
+      };
+
+      const handleClearHistory = () => {
+        if (window.confirm('本当に履歴をすべて削除しますか？')) {
+          setHistory([]);
+          localStorage.removeItem('quizHistory');
+        }
+      };
+
+      const getReviewOptionClass = (option, entry) => {
+        const optionLetter = option.charAt(0);
+        const correctAnswers = entry.question.correctAnswer.split(',').map(a => a.trim());
+        const wasSelected = entry.selectedAnswers.includes(optionLetter);
+        
+        if (correctAnswers.includes(optionLetter)) {
+          return 'correct';
+        }
+        
+        if (wasSelected) {
+          return 'incorrect';
+        }
+
+        return '';
+      };
+
+      return (
+        <div className="app-container">
+          <div className="header">
+            <h1>Quiz Master</h1>
+            <p>/ MARKDOWN QUIZ GENERATOR /</p>
+          </div>
+
+          {!mdContent ? (
+            <div className="upload-section">
+              <h2 style={{ marginBottom: '1rem', fontSize: '1.5rem' }}>MDファイルをアップロード</h2>
+              <p style={{ marginBottom: '2rem', color: 'var(--text-secondary)' }}>
+                クイズ形式のマークダウンファイルを選択してください
+              </p>
+              <label htmlFor="file-input" className="upload-button">
+                ファイルを選択
+              </label>
+              <input
+                id="file-input"
+                type="file"
+                accept=".md,.txt"
+                onChange={handleFileUpload}
+                className="file-input"
+              />
+            </div>
+          ) : (
+            <>
+              <div className="upload-section has-file">
+                <p className="file-info">✓ {fileName} を読み込みました（{questions.length}問）</p>
+              </div>
+
+              {/* View Toggle */}
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+                <button 
+                  className={view === 'quiz' ? 'submit-button' : 'next-button'}
+                  onClick={() => setView('quiz')}
+                  style={{ flex: 1 }}
+                >
+                  クイズ
+                </button>
+                <button 
+                  className={view === 'history' ? 'submit-button' : 'next-button'}
+                  onClick={() => setView('history')}
+                  style={{ flex: 1 }}
+                >
+                  履歴 ({history.length})
+                </button>
+              </div>
+
+              {view === 'history' && (
+                <div className="quiz-card">
+                  <div className="question-header">
+                    <h2 style={{ fontSize: '1.5rem', margin: 0 }}>回答履歴</h2>
+                    {history.length > 0 && (
+                      <button 
+                        onClick={handleClearHistory}
+                        style={{
+                          background: 'transparent',
+                          border: '1px solid var(--incorrect)',
+                          color: 'var(--incorrect)',
+                          padding: '0.5rem 1rem',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem'
+                        }}
+                      >
+                        履歴削除
+                      </button>
+                    )}
+                  </div>
+
+                  {history.length === 0 ? (
+                    <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>
+                      まだ回答履歴がありません
+                    </p>
+                  ) : (
+                    <>
+                      {/* Stats */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: '1rem',
+                        marginBottom: '2rem'
+                      }}>
+                        <div style={{
+                          background: 'var(--bg-secondary)',
+                          padding: '1.5rem',
+                          borderRadius: '12px',
+                          textAlign: 'center'
+                        }}>
+                          <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--accent)' }}>
+                            {getStats().total}
+                          </div>
+                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>解答数</div>
+                        </div>
+                        <div style={{
+                          background: 'var(--bg-secondary)',
+                          padding: '1.5rem',
+                          borderRadius: '12px',
+                          textAlign: 'center'
+                        }}>
+                          <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--correct)' }}>
+                            {getStats().correct}
+                          </div>
+                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>正解数</div>
+                        </div>
+                        <div style={{
+                          background: 'var(--bg-secondary)',
+                          padding: '1.5rem',
+                          borderRadius: '12px',
+                          textAlign: 'center'
+                        }}>
+                          <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--accent)' }}>
+                            {getStats().percentage}%
+                          </div>
+                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>正答率</div>
+                        </div>
+                      </div>
+
+                      {/* History List */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {history.map((entry) => (
+                          <div
+                            key={entry.id}
+                            style={{
+                              background: 'var(--bg-secondary)',
+                              padding: '1.5rem',
+                              borderRadius: '12px',
+                              borderLeft: `4px solid ${entry.isCorrect ? 'var(--correct)' : 'var(--incorrect)'}`,
+                              cursor: 'pointer',
+                              transition: 'all 0.3s ease'
+                            }}
+                            onClick={() => handleReview(entry)}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateX(4px)';
+                              e.currentTarget.style.background = 'rgba(245, 158, 11, 0.08)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateX(0)';
+                              e.currentTarget.style.background = 'var(--bg-secondary)';
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                              <span style={{
+                                fontFamily: 'JetBrains Mono, monospace',
+                                fontSize: '0.85rem',
+                                color: 'var(--text-secondary)'
+                              }}>
+                                問題 {entry.question.number}
+                              </span>
+                              <span style={{
+                                fontFamily: 'JetBrains Mono, monospace',
+                                fontSize: '0.85rem',
+                                color: entry.isCorrect ? 'var(--correct)' : 'var(--incorrect)',
+                                fontWeight: '600'
+                              }}>
+                                {entry.isCorrect ? '✓ 正解' : '✗ 不正解'}
+                              </span>
+                            </div>
+                            <div style={{
+                              fontSize: '1rem',
+                              color: 'var(--text-primary)',
+                              marginBottom: '0.5rem',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {entry.question.question.split('\n')[0]}
+                            </div>
+                            <div style={{
+                              fontSize: '0.85rem',
+                              color: 'var(--text-secondary)',
+                              fontFamily: 'JetBrains Mono, monospace'
+                            }}>
+                              {new Date(entry.timestamp).toLocaleString('ja-JP')}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {view === 'review' && reviewQuestion && (
+                <div className="quiz-card">
+                  <button 
+                    onClick={handleBackToQuiz}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--accent)',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      marginBottom: '1.5rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    ← 戻る
+                  </button>
+
+                  <div className="question-header">
+                    <span className="question-number">問題 {reviewQuestion.question.number}</span>
+                    <span className="selection-type">
+                      {reviewQuestion.question.isMultiSelect ? '複数選択' : '単一選択'}
+                    </span>
+                  </div>
+
+                  <div style={{
+                    padding: '1rem',
+                    background: reviewQuestion.isCorrect ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                    borderRadius: '8px',
+                    marginBottom: '1.5rem',
+                    textAlign: 'center',
+                    fontSize: '1.1rem',
+                    fontWeight: '600',
+                    color: reviewQuestion.isCorrect ? 'var(--correct)' : 'var(--incorrect)'
+                  }}>
+                    {reviewQuestion.isCorrect ? '✓ 正解でした' : '✗ 不正解でした'}
+                  </div>
+
+                  <div className="question-text">{reviewQuestion.question.question}</div>
+
+                  <div className="options">
+                    {reviewQuestion.question.options.map((option, index) => (
+                      <label key={index} className={`option-label ${getReviewOptionClass(option, reviewQuestion)}`}>
+                        <input
+                          type={reviewQuestion.question.isMultiSelect ? 'checkbox' : 'radio'}
+                          className="option-input"
+                          checked={reviewQuestion.selectedAnswers.includes(option.charAt(0))}
+                          disabled
+                        />
+                        <span className="option-text">{option}</span>
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className={`result-section ${reviewQuestion.isCorrect ? 'correct' : 'incorrect'}`}>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <strong>正解: {reviewQuestion.question.correctAnswer}</strong>
+                    </div>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <strong>あなたの回答: {reviewQuestion.selectedAnswers.join(', ')}</strong>
+                    </div>
+                    <div className="explanation">{reviewQuestion.question.explanation}</div>
+                  </div>
+                </div>
+              )}
+
+              {view === 'quiz' && (
+                <>
+                  {error && <div className="error-message">{error}</div>}
+
+                  {currentQuestion && (
+                    <div className="quiz-card">
+                      <div className="question-header">
+                        <span className="question-number">問題 {currentQuestion.number}</span>
+                        <span className="selection-type">
+                          {currentQuestion.isMultiSelect ? '複数選択' : '単一選択'}
+                        </span>
+                      </div>
+
+                      <div className="question-text">{currentQuestion.question}</div>
+
+                      <div className="options">
+                        {currentQuestion.options.map((option, index) => (
+                          <label key={index} className={`option-label ${getOptionClass(option)}`}>
+                            <input
+                              type={currentQuestion.isMultiSelect ? 'checkbox' : 'radio'}
+                              name="quiz-option"
+                              className="option-input"
+                              checked={selectedAnswers.includes(option.charAt(0))}
+                              onChange={() => handleAnswerChange(option)}
+                              disabled={showResult}
+                            />
+                            <span className="option-text">{option}</span>
+                          </label>
+                        ))}
+                      </div>
+
+                      {!showResult ? (
+                        <button 
+                          className="submit-button" 
+                          onClick={handleSubmit}
+                          disabled={selectedAnswers.length === 0}
+                        >
+                          回答する
+                        </button>
+                      ) : (
+                        <>
+                          <div className={`result-section ${isCorrect() ? 'correct' : 'incorrect'}`}>
+                            <div className={`result-title ${isCorrect() ? 'correct' : 'incorrect'}`}>
+                              {isCorrect() ? '✓ 正解です' : '✗ 不正解です'}
+                            </div>
+                            <div style={{ marginBottom: '1rem' }}>
+                              <strong>正解: {currentQuestion.correctAnswer}</strong>
+                            </div>
+                          </div>
+
+                          {/* Original Explanation - Primary */}
+                          {currentQuestion.explanation && (
+                            <div style={{
+                              marginTop: '1.5rem',
+                              padding: '2rem',
+                              background: 'var(--bg-secondary)',
+                              borderRadius: '12px',
+                              border: '1px solid var(--border)'
+                            }}>
+                              <h3 style={{
+                                fontSize: '1.1rem',
+                                fontWeight: '600',
+                                color: 'var(--text-primary)',
+                                marginBottom: '1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                              }}>
+                                📖 解説
+                              </h3>
+                              <div className="explanation">{currentQuestion.explanation}</div>
+                            </div>
+                          )}
+
+                          {/* AI Explanation Toggle */}
+                          <div style={{
+                            marginTop: '1.5rem',
+                            padding: '1.5rem',
+                            background: 'var(--bg-secondary)',
+                            borderRadius: '12px',
+                            border: '1px solid var(--border)'
+                          }}>
+                            <label style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '1rem',
+                              cursor: 'pointer'
+                            }}>
+                              <input
+                                type="checkbox"
+                                checked={aiEnabled}
+                                onChange={(e) => {
+                                  const enabled = e.target.checked;
+                                  setAiEnabled(enabled);
+                                  if (enabled && !aiExplanation && !isGenerating) {
+                                    generateAIExplanation(
+                                      currentQuestion,
+                                      selectedAnswers,
+                                      currentQuestion.correctAnswer,
+                                      isCorrect()
+                                    );
+                                  }
+                                }}
+                                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                              />
+                              <span style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>
+                                🤖 AI解説を生成（実験的機能 - CORSエラーが出る場合があります）
+                              </span>
+                            </label>
+
+                            {aiEnabled && (
+                              <div style={{ marginTop: '1.5rem' }}>
+                                {isGenerating ? (
+                                  <div style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: '1rem',
+                                    padding: '2rem',
+                                    color: 'var(--text-secondary)'
+                                  }}>
+                                    <div style={{
+                                      width: '40px',
+                                      height: '40px',
+                                      border: '3px solid var(--border)',
+                                      borderTop: '3px solid var(--accent)',
+                                      borderRadius: '50%',
+                                      animation: 'spin 1s linear infinite'
+                                    }}></div>
+                                    <p>AI解説を生成中...</p>
+                                  </div>
+                                ) : aiExplanation ? (
+                                  <div style={{
+                                    fontSize: '1.05rem',
+                                    lineHeight: '1.8',
+                                    color: aiExplanation.includes('❌') ? 'var(--incorrect)' : 'var(--text-primary)',
+                                    whiteSpace: 'pre-wrap',
+                                    padding: '1rem',
+                                    background: aiExplanation.includes('❌') ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-card)',
+                                    borderRadius: '8px'
+                                  }}>
+                                    {aiExplanation}
+                                  </div>
+                                ) : null}
+                              </div>
+                            )}
+                          </div>
+
+                          <button className="next-button" onClick={handleNext} style={{ marginTop: '1.5rem' }}>
+                            次の問題へ
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<QuizApp />, document.getElementById('root'));
+  </script>
+</body>
+</html>
